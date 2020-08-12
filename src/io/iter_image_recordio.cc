@@ -1,3 +1,22 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 /*!
  *  Copyright (c) 2015 by Contributors
  * \file iter_image_recordio-inl.hpp
@@ -13,6 +32,7 @@
 #include <dmlc/parameter.h>
 #include <dmlc/recordio.h>
 #include <dmlc/threadediter.h>
+#include <memory>
 #include <unordered_map>
 #include <vector>
 #include <cstdlib>
@@ -34,7 +54,7 @@ class ImageRecordIOParser {
   inline void Init(const std::vector<std::pair<std::string, std::string> >& kwargs);
 
   // set record to the head
-  inline void BeforeFirst(void) {
+  inline void BeforeFirst() {
     return source_->BeforeFirst();
   }
   // parse next set of records, return an array of
@@ -92,8 +112,8 @@ inline void ImageRecordIOParser<DType>::Init(
     prnds_.emplace_back(new common::RANDOM_ENGINE((i + 1) * kRandMagic));
   }
   if (param_.path_imglist.length() != 0) {
-    label_map_.reset(new ImageLabelMap(param_.path_imglist.c_str(),
-      param_.label_width, !param_.verbose));
+    label_map_ = std::make_unique<ImageLabelMap>(param_.path_imglist.c_str(),
+      param_.label_width, !param_.verbose);
   }
   CHECK(param_.path_imgrec.length() != 0)
       << "ImageRecordIOIterator: must specify image_rec";
@@ -207,7 +227,7 @@ ParseNext(std::vector<InstVector<DType>> *out_vec) {
       mshadow::Tensor<cpu, 1> label = out.label().Back();
       if (label_map_ != nullptr) {
         mshadow::Copy(label, label_map_->Find(rec.image_index()));
-      } else if (rec.label != NULL) {
+      } else if (rec.label != nullptr) {
         CHECK_EQ(param_.label_width, rec.num_label)
           << "rec file provide " << rec.num_label << "-dimensional label "
              "but label_width is set to " << param_.label_width;
@@ -234,12 +254,12 @@ class ImageRecordIter : public IIterator<DataInst> {
  public:
   ImageRecordIter() : data_(nullptr) { }
   // destructor
-  virtual ~ImageRecordIter(void) {
+  ~ImageRecordIter() override {
     iter_.Destroy();
     delete data_;
   }
   // constructor
-  virtual void Init(const std::vector<std::pair<std::string, std::string> >& kwargs) {
+  void Init(const std::vector<std::pair<std::string, std::string> >& kwargs) override {
     param_.InitAllowUnknown(kwargs);
     // use the kwarg to init parser
     parser_.Init(kwargs);
@@ -257,13 +277,13 @@ class ImageRecordIter : public IIterator<DataInst> {
     rnd_.seed(kRandMagic + param_.seed);
   }
   // before first
-  virtual void BeforeFirst(void) {
+  void BeforeFirst() override {
     iter_.BeforeFirst();
     inst_order_.clear();
     inst_ptr_ = 0;
   }
 
-  virtual bool Next(void) {
+  bool Next() override {
     while (true) {
       if (inst_ptr_ < inst_order_.size()) {
         std::pair<unsigned, unsigned> p = inst_order_[inst_ptr_];
@@ -277,7 +297,7 @@ class ImageRecordIter : public IIterator<DataInst> {
         for (unsigned i = 0; i < data_->size(); ++i) {
           const InstVector<DType>& tmp = (*data_)[i];
           for (unsigned j = 0; j < tmp.Size(); ++j) {
-            inst_order_.push_back(std::make_pair(i, j));
+            inst_order_.emplace_back(i, j);
           }
         }
         // shuffle instance order if needed
@@ -290,7 +310,7 @@ class ImageRecordIter : public IIterator<DataInst> {
     return false;
   }
 
-  virtual const DataInst &Value(void) const {
+  const DataInst &Value() const override {
     return out_;
   }
 
@@ -319,6 +339,11 @@ class ImageRecordIter : public IIterator<DataInst> {
 MXNET_REGISTER_IO_ITER(ImageRecordIter_v1)
 .describe(R"code(Iterating on image RecordIO files
 
+.. note::
+
+  ``ImageRecordIter_v1`` is deprecated. Use ``ImageRecordIter`` instead.
+
+
 Read images batches from RecordIO files with a rich of data augmentation
 options.
 
@@ -342,6 +367,10 @@ files.
 // OLD VERSION - DEPRECATED
 MXNET_REGISTER_IO_ITER(ImageRecordUInt8Iter_v1)
 .describe(R"code(Iterating on image RecordIO files
+
+.. note::
+
+  ``ImageRecordUInt8Iter_v1`` is deprecated. Use ``ImageRecordUInt8Iter`` instead.
 
 This iterator is identical to ``ImageRecordIter`` except for using ``uint8`` as
 the data type instead of ``float``.

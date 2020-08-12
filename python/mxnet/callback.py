@@ -1,39 +1,27 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 # coding: utf-8
 """Callback functions that can be used to track various status during epoch."""
-from __future__ import absolute_import
 
 import logging
 import math
 import time
 from .model import save_checkpoint
-
-def module_checkpoint(mod, prefix, period=1, save_optimizer_states=False):
-    """Callback to checkpoint Module to prefix every epoch.
-
-    Parameters
-    ----------
-    mod : subclass of BaseModule
-        The module to checkpoint.
-    prefix : str
-        The file prefix for this checkpoint.
-    period : int
-        How many epochs to wait before checkpointing. Defaults to 1.
-    save_optimizer_states : bool
-        Indicates whether or not to save optimizer states for continued training.
-
-    Returns
-    -------
-    callback : function
-        The callback function that can be passed as iter_end_callback to fit.
-    """
-    period = int(max(1, period))
-    # pylint: disable=unused-argument
-    def _callback(iter_no, sym=None, arg=None, aux=None):
-        """The checkpoint function."""
-        if (iter_no + 1) % period == 0:
-            mod.save_checkpoint(prefix, iter_no + 1, save_optimizer_states)
-    return _callback
-
 
 def do_checkpoint(prefix, period=1):
     """A callback that saves a model checkpoint every few epochs.
@@ -139,14 +127,22 @@ class Speedometer(object):
 
         if self.init:
             if count % self.frequent == 0:
-                speed = self.frequent * self.batch_size / (time.time() - self.tic)
+                # #11504
+                try:
+                    speed = self.frequent * self.batch_size / (time.time() - self.tic)
+                except ZeroDivisionError:
+                    speed = float('inf')
                 if param.eval_metric is not None:
                     name_value = param.eval_metric.get_name_value()
                     if self.auto_reset:
                         param.eval_metric.reset()
-                    msg = 'Epoch[%d] Batch [%d]\tSpeed: %.2f samples/sec'
-                    msg += '\t%s=%f'*len(name_value)
-                    logging.info(msg, param.epoch, count, speed, *sum(name_value, ()))
+                        msg = 'Epoch[%d] Batch [%d-%d]\tSpeed: %.2f samples/sec'
+                        msg += '\t%s=%f'*len(name_value)
+                        logging.info(msg, param.epoch, count-self.frequent, count, speed, *sum(name_value, ()))
+                    else:
+                        msg = 'Epoch[%d] Batch [0-%d]\tSpeed: %.2f samples/sec'
+                        msg += '\t%s=%f'*len(name_value)
+                        logging.info(msg, param.epoch, count, speed, *sum(name_value, ()))
                 else:
                     logging.info("Iter[%d] Batch [%d]\tSpeed: %.2f samples/sec",
                                  param.epoch, count, speed)

@@ -1,9 +1,26 @@
 #!/usr/bin/env python
+
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 # -*- coding: utf-8 -*-
 # pylint: disable= protected-access, invalid-name
 """Logging utilities."""
 import logging
-import sys
 import warnings
 
 CRITICAL = logging.CRITICAL
@@ -12,8 +29,6 @@ WARNING = logging.WARNING
 INFO = logging.INFO
 DEBUG = logging.DEBUG
 NOTSET = logging.NOTSET
-
-PY3 = sys.version_info[0] == 3
 
 
 class _Formatter(logging.Formatter):
@@ -53,10 +68,7 @@ class _Formatter(logging.Formatter):
         fmt += '%(asctime)s %(process)d %(pathname)s:%(funcName)s:%(lineno)d'
         fmt += ']\x1b[0m'
         fmt += ' %(message)s'
-        if PY3:
-            self._style._fmt = fmt # pylint: disable= no-member
-        else:
-            self._fmt = fmt
+        self._style._fmt = fmt # pylint: disable= no-member
         return super(_Formatter, self).format(record)
 
 def getLogger(name=None, filename=None, filemode=None, level=WARNING):

@@ -36,6 +36,7 @@ docs/web-data
 
 #dmlc
 config.mk
+config.cmake
 
 *.pyc
 .Rhistory
@@ -60,13 +61,13 @@ tracker
 __pycache__
 *.pkl
 *.params
+*.states
 *.json
 *.d
-build
 cmake-build*
 data
+model
 recommonmark
-deps
 
 # R
 *.Rcheck
@@ -95,32 +96,24 @@ input.txt*
 
 # Jetbrain
 .idea
+.gradle
+*.iml
 
 # ctags
 tags
 
-# Scala package
-*.class
-scala-package/*/target/
-scala-package/*/*/target/
-*.scala_dependencies
-*.worksheet
-*.idea
-*.iml
-*.classpath
-*.project
-*.settings
-!scala-package/*/bin
-*.bak
-*/node_modules/
+# cscope
+cscope.out
+cscope.files
 
 # Eclipse project config
 .project
 .cproject
+.classpath
+.settings
 .pydevproject
 CMakeFiles
 cmake_install.cmake
-lib
 
 # Visual Studio Code
 .vscode
@@ -128,9 +121,14 @@ lib
 # Mac OS X
 .DS_Store
 
+# Windows
+windows_package.7z
+windows_package
+
 #Notebook Automated Test
 !tests/nightly/test_tutorial_config.txt
 !tests/nightly/TestNotebook
+tests/nightly/tmp_notebook
 
 # pip building tools
 tools/pip_package/build
@@ -139,10 +137,37 @@ tools/pip_package/mxnet.egg-info
 tools/pip_package/mxnet
 
 # temporary path for building dependencies when building wheel
-./deps/
-bld
-./tmp/*
-*.jar
-target
+deps/
+staticdeps/
+tmp/
+build/
+lib/
+bin/
+model/
 
-bin/im2rec
+# VTune
+./r0*hs
+
+# generated function signature for IDE auto-complete
+python/mxnet/symbol/gen_*
+python/mxnet/ndarray/gen_*
+python/.eggs
+
+# tests if built insource
+*CTestTestfile.cmake
+*DartConfiguration.tcl
+tests/Makefile
+tests/mxnet_unit_tests
+
+# Code coverage related
+.coverage
+*.gcov
+*.gcno
+coverage.xml
+
+# Local CMake build config
+cmake_options.yml
+
+# header file generated at compile time
+include/mkldnn/dnnl_version.h
+include/mkldnn/dnnl_config.h

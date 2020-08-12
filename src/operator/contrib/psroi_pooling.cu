@@ -1,3 +1,22 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 /*!
  * Copyright (c) 2017 by Contributors
  * Copyright (c) 2017 Microsoft
@@ -20,10 +39,6 @@
     cudaError_t error = condition; \
     CHECK_EQ(error, cudaSuccess) << " " << cudaGetErrorString(error); \
   } while (0)
-#define CUDA_KERNEL_LOOP(i, n) \
-for (int i = blockIdx.x * blockDim.x + threadIdx.x; \
-      i < (n); \
-      i += blockDim.x * gridDim.x)
 
 namespace mshadow {
 namespace cuda {
@@ -119,7 +134,7 @@ inline void PSROIPoolForward(const Tensor<gpu, 4, DType> &out,
     kBaseThreadNum, 0, stream >> >(
       count, bottom_data, spatial_scale, channels, height, width,
       pooled_height, pooled_width, bottom_rois, output_dim_, group_size_, top_data);
-  PSROIPOOLING_CUDA_CHECK(cudaPeekAtLastError());
+  PSROIPOOLING_CUDA_CHECK(cudaGetLastError());
 }
 
 
@@ -216,7 +231,7 @@ inline void PSROIPoolBackwardAcc(const Tensor<gpu, 4, DType> &in_grad,
     kBaseThreadNum, 0, stream >> >(
       count, top_diff, num_rois, spatial_scale, channels, height, width,
       pooled_height, pooled_width, group_size_, output_dim_, bottom_diff, bottom_rois);
-  PSROIPOOLING_CUDA_CHECK(cudaPeekAtLastError());
+  PSROIPOOLING_CUDA_CHECK(cudaGetLastError());
 }
 
 }  // namespace cuda
@@ -249,7 +264,7 @@ namespace op {
 
 template<>
 Operator* CreateOp<gpu>(PSROIPoolingParam param, int dtype) {
-  Operator* op = NULL;
+  Operator* op = nullptr;
   MSHADOW_REAL_TYPE_SWITCH(dtype, DType, {
     op = new PSROIPoolingOp<gpu, DType>(param);
   });

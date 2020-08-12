@@ -1,3 +1,22 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 /*!
  * Copyright (c) 2016 by Contributors
  * \file multibox_target.cu
@@ -330,14 +349,13 @@ inline void MultiBoxTargetForward(const Tensor<gpu, 2, DType> &loc_target,
                            const float negative_mining_ratio,
                            const float negative_mining_thresh,
                            const int minimum_negative_samples,
-                           const nnvm::Tuple<float> &variances) {
+                           const mxnet::Tuple<float> &variances) {
   const int num_batches = labels.size(0);
   const int num_labels = labels.size(1);
   const int label_width = labels.size(2);
   const int num_anchors = anchors.size(0);
   const int num_classes = cls_preds.size(1);
   CHECK_GE(num_batches, 1);
-  CHECK_GT(num_labels, 2);
   CHECK_GE(num_anchors, 1);
   CHECK_EQ(variances.ndim(), 4);
 
@@ -350,7 +368,7 @@ inline void MultiBoxTargetForward(const Tensor<gpu, 2, DType> &loc_target,
   cuda::CheckLaunchParam(init_block_dim, init_thread_dim, "MultiBoxTarget Init");
   cuda::InitGroundTruthFlags<DType><<<init_block_dim, init_thread_dim>>>(
     gt_flags, labels.dptr_, num_batches, num_labels, label_width);
-  MULTIBOX_TARGET_CUDA_CHECK(cudaPeekAtLastError());
+  MULTIBOX_TARGET_CUDA_CHECK(cudaGetLastError());
 
   // compute best matches
   temp_space[2] = -1.f;
@@ -361,14 +379,14 @@ inline void MultiBoxTargetForward(const Tensor<gpu, 2, DType> &loc_target,
   cuda::CheckLaunchParam(num_batches, num_threads, "MultiBoxTarget Matching");
   cuda::FindBestMatches<DType><<<num_batches, num_threads>>>(best_matches,
     gt_flags, anchor_flags, overlaps, num_anchors, num_labels);
-  MULTIBOX_TARGET_CUDA_CHECK(cudaPeekAtLastError());
+  MULTIBOX_TARGET_CUDA_CHECK(cudaGetLastError());
 
   // find good matches with overlap > threshold
   if (overlap_threshold > 0) {
     cuda::FindGoodMatches<DType><<<num_batches, num_threads>>>(best_matches,
       anchor_flags, overlaps, num_anchors, num_labels,
       overlap_threshold);
-    MULTIBOX_TARGET_CUDA_CHECK(cudaPeekAtLastError());
+    MULTIBOX_TARGET_CUDA_CHECK(cudaGetLastError());
   }
 
   // do negative mining or not
@@ -380,20 +398,20 @@ inline void MultiBoxTargetForward(const Tensor<gpu, 2, DType> &loc_target,
       cls_preds.dptr_, anchor_flags, buffer, negative_mining_ratio,
       negative_mining_thresh, minimum_negative_samples,
       num_anchors, num_labels, num_classes);
-    MULTIBOX_TARGET_CUDA_CHECK(cudaPeekAtLastError());
+    MULTIBOX_TARGET_CUDA_CHECK(cudaGetLastError());
   } else {
     int num_blocks = (num_batches * num_anchors - 1) / num_threads + 1;
     cuda::CheckLaunchParam(num_blocks, num_threads, "MultiBoxTarget Negative");
     cuda::UseAllNegatives<DType><<<num_blocks, num_threads>>>(anchor_flags,
       num_batches * num_anchors);
-    MULTIBOX_TARGET_CUDA_CHECK(cudaPeekAtLastError());
+    MULTIBOX_TARGET_CUDA_CHECK(cudaGetLastError());
   }
 
   cuda::AssignTrainigTargets<DType><<<num_batches, num_threads>>>(
     loc_target.dptr_, loc_mask.dptr_, cls_target.dptr_, anchor_flags,
     best_matches, labels.dptr_, anchors.dptr_, num_anchors, num_labels,
     label_width, variances[0], variances[1], variances[2], variances[3]);
-  MULTIBOX_TARGET_CUDA_CHECK(cudaPeekAtLastError());
+  MULTIBOX_TARGET_CUDA_CHECK(cudaGetLastError());
 }
 }  // namespace mshadow
 
@@ -401,7 +419,7 @@ namespace mxnet {
 namespace op {
 template<>
 Operator *CreateOp<gpu>(MultiBoxTargetParam param, int dtype) {
-  Operator *op = NULL;
+  Operator *op = nullptr;
   MSHADOW_REAL_TYPE_SWITCH(dtype, DType, {
     op = new MultiBoxTargetOp<gpu, DType>(param);
   });

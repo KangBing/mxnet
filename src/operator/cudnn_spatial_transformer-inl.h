@@ -1,3 +1,22 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 /*!
  * Copyright (c) 2016 by Contributors
  * \file cudnn_spatial_transformer-inl.h
@@ -12,7 +31,8 @@
 #include "./spatial_transformer-inl.h"
 namespace mxnet {
 namespace op {
-#if defined(__CUDACC__) && MXNET_USE_CUDNN == 1 && CUDNN_MAJOR >= 5
+#if defined(__CUDACC__) && MXNET_USE_CUDNN == 1
+STATIC_ASSERT_CUDNN_VERSION_GE(5000);
 template<typename DType>
 class CuDNNSpatialTransformerOp : public Operator {
  public:
@@ -126,9 +146,7 @@ class CuDNNSpatialTransformerOp : public Operator {
                    const std::vector<TBlob> &in_data,
                    const std::vector<TBlob> &out_data) {
     using namespace mshadow;
-    #if CUDNN_MAJOR >= 5
     format_ = CUDNN_TENSOR_NCHW;
-    #endif
     CHECK_EQ(in_data.size(), 2U);
     CHECK_EQ(out_data.size(), 3U);
     if (!init_cudnn_) {
@@ -170,12 +188,10 @@ class CuDNNSpatialTransformerOp : public Operator {
   cudnnTensorDescriptor_t in_desc_;
   cudnnTensorDescriptor_t out_desc_;
   cudnnSamplerType_t sampler_;
-  #if CUDNN_MAJOR >= 5
   cudnnTensorFormat_t format_;
-  #endif
   SpatialTransformerParam param_;
 };
-#endif  // __CUDACC__ && CUDNN
+#endif  // __CUDACC__ && MXNET_USE_CUDNN
 }  // namespace op
 }  // namespace mxnet
 
